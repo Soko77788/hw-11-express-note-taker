@@ -1,64 +1,69 @@
 const express = require('express');
-const fs = require('fs');
+// required in fs promises here after watching instructor demonstrate
+// on express day 3 cloud recording.
+const fs = require('fs').promises;
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-
+// ditched the uuid package and just wrote an id to the notes using math.random like we have before. Not having .floor made repeat numbers much more unlikely. 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware to parse JSON and urlencoded data
-app.use(express.json());
+// Middleware
+
+// first middleware is provided by ChatGPT but it fixed the program
+// It confuses me but i know it parses data and makes the program able to process it. 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static('public'));
 
-// Serve static files from the 'develop/public' directory
-app.use(express.static(path.join(__dirname, 'develop/public')));
-
-// HTML Routes
+// Routes
 app.get('/notes', (req, res) => {
-    res.sendFile(path.join(__dirname, 'develop/public/notes.html'));
+  res.sendFile(path.join(__dirname, '/public/notes.html'));
 });
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'develop/public/index.html'));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '/public/index.html'));
 });
 
-// API Routes
-app.get('/api/notes', (req, res) => {
-    fs.readFile(path.join(__dirname, 'develop/db/db.json'), 'utf8', (err, data) => {
-        if (err) throw err;
-        res.json(JSON.parse(data));
-    });
+app.get('/api/notes', async (req, res) => {
+  try {
+    const data = await fs.readFile(path.join(__dirname, '/db/db.json'), 'utf8');
+    const notes = JSON.parse(data);
+    res.json(notes);
+  } catch (err) {
+    console.error('Error reading notes:', err);
+    res.status(500).json({ error: 'Failed to read notes' });
+  }
 });
 
-app.post('/api/notes', (req, res) => {
-    const newNote = { id: uuidv4(), ...req.body };
-
-    fs.readFile(path.join(__dirname, 'develop/db/db.json'), 'utf8', (err, data) => {
-        if (err) throw err;
-        const notes = JSON.parse(data);
-        notes.push(newNote);
-
-        fs.writeFile(path.join(__dirname, 'develop/db/db.json'), JSON.stringify(notes), (err) => {
-            if (err) throw err;
-            res.json(newNote);
-        });
-    });
+app.post('/api/notes', async (req, res) => {
+  try {
+    const data = await fs.readFile(path.join(__dirname, '/db/db.json'), 'utf8');
+    const notes = JSON.parse(data);
+    const newNote = { ...req.body, id: Math.random().toString() };
+    notes.push(newNote);
+    await fs.writeFile(path.join(__dirname, '/db/db.json'), JSON.stringify(notes, null, 2));
+    res.json(newNote);
+  } catch (err) {
+    console.error('Error saving note:', err);
+    res.status(500).json({ error: 'Failed to save note' });
+  }
 });
 
-// Bonus: Delete Route
-app.delete('/api/notes/:id', (req, res) => {
-    const noteId = req.params.id;
-
-    fs.readFile(path.join(__dirname, 'develop/db/db.json'), 'utf8', (err, data) => {
-        if (err) throw err;
-        let notes = JSON.parse(data);
-        notes = notes.filter(note => note.id !== noteId);
-
-        fs.writeFile(path.join(__dirname, 'develop/db/db.json'), JSON.stringify(notes), (err) => {
-            if (err) throw err;
-            res.json({ message: 'Note deleted' });
-        });
-    });
+app.delete('/api/notes/:id', async (req, res) => {
+  try {
+    const data = await fs.readFile(path.join(__dirname, '/db/db.json'), 'utf8');
+    let notes = JSON.parse(data);
+    const { id } = req.params;
+    notes = notes.filter(note => note.id !== id);
+    await fs.writeFile(path.join(__dirname, '/db/db.json'), JSON.stringify(notes, null, 2));
+    res.sendStatus(204);
+  } catch (err) {
+    console.error('Error deleting note:', err);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
 });
- 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});

@@ -1,0 +1,7 @@
+[
+  {
+    "title": "Example Note",
+    "text": "An example note to show up in the db.json file. Feel free to delete! Saving new notes writes to the db.json file!",
+    "id": "0.27836774602687453"
+  }
+]
