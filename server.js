@@ -16,14 +16,20 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Routes
+
+// lands on the notes page tested in insomnia and browser
 app.get('/notes', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/notes.html'));
 });
 
+// home page or landing page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/index.html'));
 });
 
+// scrapped previous commits and switched to async await because the files weren't reading fast enough and there were alot of console errors.
+
+// reads the db.json file and retrieves notes data.
 app.get('/api/notes', async (req, res) => {
   try {
     const data = await fs.readFile(path.join(__dirname, '/db/db.json'), 'utf8');
@@ -31,16 +37,21 @@ app.get('/api/notes', async (req, res) => {
     res.json(notes);
   } catch (err) {
     console.error('Error reading notes:', err);
+    // the status 500 codes indicates something was wrong on the server side. ChatGPT provided the status. I would have tried responding with just a console.log.
     res.status(500).json({ error: 'Failed to read notes' });
   }
 });
+
+// posting the retrieved data. I couldn't figure out the syntax alone so AI cleaned it up. We didn't really learn the 'try' part but im assuming if the try fails it catches the err. 
 
 app.post('/api/notes', async (req, res) => {
   try {
     const data = await fs.readFile(path.join(__dirname, '/db/db.json'), 'utf8');
     const notes = JSON.parse(data);
+    // create new note with the data which is the req.body and how it gets the id for the delete request later. 
     const newNote = { ...req.body, id: Math.random().toString() };
     notes.push(newNote);
+    // null and 2 are optional arguments. from ChatGPT. 2 is for spacing. null is a 'replacer' if null passes nothing changes in the strigification 
     await fs.writeFile(path.join(__dirname, '/db/db.json'), JSON.stringify(notes, null, 2));
     res.json(newNote);
   } catch (err) {
