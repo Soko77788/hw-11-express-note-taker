@@ -60,6 +60,9 @@ app.post('/api/notes', async (req, res) => {
   }
 });
 
+// Bonus Delete path. Similar to the post path except it's looking for the id of the note against existing notes and rewriting the db.json file.
+// Needed help with the :id endpoint and req.params id deconstruct. 
+
 app.delete('/api/notes/:id', async (req, res) => {
   try {
     const data = await fs.readFile(path.join(__dirname, '/db/db.json'), 'utf8');
